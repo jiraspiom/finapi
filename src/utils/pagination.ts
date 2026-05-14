@@ -20,7 +20,11 @@ export function parsePagination(query: PaginationQuery) {
   return { page, limit, skip }
 }
 
-export function buildMeta(page: number, limit: number, total: number): PaginationMeta {
+export function buildMeta(
+  page: number,
+  limit: number,
+  total: number
+): PaginationMeta {
   const totalPages = Math.ceil(total / limit)
   return {
     page,

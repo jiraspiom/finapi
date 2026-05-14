@@ -1,63 +1,68 @@
 // src/index.ts
-import { Hono } from "hono"
-import { cors } from "hono/cors"
-import { logger } from "hono/logger"
-import { secureHeaders } from "hono/secure-headers"
-import { prettyJSON } from "hono/pretty-json"
-import { rateLimiter } from "./middleware/rate-limiter"
-import { errorHandler } from "./middleware/error-handler"
-import { authRoutes } from "./routes/auth"
-import { accountRoutes } from "./routes/accounts"
-import { transactionRoutes } from "./routes/transactions"
-import { categoryRoutes } from "./routes/categories"
-import { budgetRoutes } from "./routes/budgets"
-import { goalRoutes } from "./routes/goals"
-import { transferRoutes } from "./routes/transfers"
-import { recurringRoutes } from "./routes/recurring"
-import { dashboardRoutes } from "./routes/dashboard"
-import { reportRoutes } from "./routes/reports"
-import { importRoutes } from "./routes/import"
-import { env } from "./utils/env"
+import { Hono } from 'hono'
+import { cors } from 'hono/cors'
+import { logger } from 'hono/logger'
+import { secureHeaders } from 'hono/secure-headers'
+import { prettyJSON } from 'hono/pretty-json'
+import { rateLimiter } from './middleware/rate-limiter'
+import { errorHandler } from './middleware/error-handler'
+import { authRoutes } from './routes/auth'
+import { accountRoutes } from './routes/accounts'
+import { transactionRoutes } from './routes/transactions'
+import { categoryRoutes } from './routes/categories'
+import { budgetRoutes } from './routes/budgets'
+import { goalRoutes } from './routes/goals'
+import { transferRoutes } from './routes/transfers'
+import { recurringRoutes } from './routes/recurring'
+import { dashboardRoutes } from './routes/dashboard'
+import { reportRoutes } from './routes/reports'
+import { importRoutes } from './routes/import'
+import { env } from './utils/env'
 
 const app = new Hono()
 
 // Global middleware
-app.use("*", logger())
-app.use("*", secureHeaders())
-app.use("*", prettyJSON())
-app.use("*", cors({
-  origin: env.ALLOWED_ORIGINS.split(","),
-  credentials: true,
-  allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-  allowHeaders: ["Content-Type", "Authorization"],
-}))
-app.use("*", rateLimiter({ limit: 100, window: 60 }))
+app.use('*', logger())
+app.use('*', secureHeaders())
+app.use('*', prettyJSON())
+app.use(
+  '*',
+  cors({
+    origin: env.ALLOWED_ORIGINS.split(','),
+    credentials: true,
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+  })
+)
+app.use('*', rateLimiter({ limit: 100, window: 60 }))
 
 // Health check
-app.get("/health", (c) => c.json({
-  status: "ok",
-  version: "1.0.0",
-  timestamp: new Date().toISOString(),
-}))
+app.get('/health', c =>
+  c.json({
+    status: 'ok',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+  })
+)
 
 // API v1
 const v1 = new Hono()
-v1.route("/auth", authRoutes)
-v1.route("/accounts", accountRoutes)
-v1.route("/transactions", transactionRoutes)
-v1.route("/categories", categoryRoutes)
-v1.route("/budgets", budgetRoutes)
-v1.route("/goals", goalRoutes)
-v1.route("/transfers", transferRoutes)
-v1.route("/recurring", recurringRoutes)
-v1.route("/dashboard", dashboardRoutes)
-v1.route("/reports", reportRoutes)
-v1.route("/import", importRoutes)
+v1.route('/auth', authRoutes)
+v1.route('/accounts', accountRoutes)
+v1.route('/transactions', transactionRoutes)
+v1.route('/categories', categoryRoutes)
+v1.route('/budgets', budgetRoutes)
+v1.route('/goals', goalRoutes)
+v1.route('/transfers', transferRoutes)
+v1.route('/recurring', recurringRoutes)
+v1.route('/dashboard', dashboardRoutes)
+v1.route('/reports', reportRoutes)
+v1.route('/import', importRoutes)
 
-app.route("/api/v1", v1)
+app.route('/api/v1', v1)
 
 // 404 handler
-app.notFound((c) => c.json({ error: "Route not found" }, 404))
+app.notFound(c => c.json({ error: 'Route not found' }, 404))
 
 // Error handler
 app.onError(errorHandler)

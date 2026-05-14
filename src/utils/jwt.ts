@@ -1,6 +1,6 @@
 // src/utils/jwt.ts
-import jwt from "jsonwebtoken"
-import { env } from "./env"
+import jwt from 'jsonwebtoken'
+import { env } from './env'
 
 export interface TokenPayload {
   userId: string
@@ -9,13 +9,13 @@ export interface TokenPayload {
 
 export function signAccessToken(payload: TokenPayload): string {
   return jwt.sign(payload, env.JWT_SECRET, {
-    expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"],
+    expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'],
   })
 }
 
 export function signRefreshToken(payload: TokenPayload): string {
   return jwt.sign(payload, env.JWT_REFRESH_SECRET, {
-    expiresIn: env.JWT_REFRESH_EXPIRES_IN as jwt.SignOptions["expiresIn"],
+    expiresIn: env.JWT_REFRESH_EXPIRES_IN as jwt.SignOptions['expiresIn'],
   })
 }
 
