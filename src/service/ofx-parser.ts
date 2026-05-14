@@ -1,103 +1,79 @@
-// src/services/ofx-parser.ts
-import { parse } from 'ofx-js'
+// src/utils/ofx-parser.ts
 
-export interface OFXTransaction {
-  id: string
-  type: 'DEBIT' | 'CREDIT' | 'OTHER'
-  date: Date
+import iconv from 'iconv-lite'
+
+export type OfxTransaction = {
+  type: 'INCOME' | 'EXPENSE'
   amount: number
-  description: string
-  memo?: string
+  rawAmount: number
+  fitId: string
+  memo: string
+  date: Date
+  rawType: string
 }
 
-export interface OFXData {
-  accountId?: string
-  accountType?: string
-  currency?: string
-  balance?: number
-  transactions: OFXTransaction[]
+function extractTag(block: string, tag: string): string {
+  const regex = new RegExp(`<${tag}>([^<\\r\\n]+)`, 'i')
+  const match = block.match(regex)
+
+  return match?.[1]?.trim() ?? ''
 }
 
-export async function parseOFX(fileContent: string): Promise<OFXData> {
-  return new Promise((resolve, reject) => {
-    parse(fileContent, (err: Error | null, data: any) => {
-      if (err) {
-        reject(new Error(`Erro ao processar OFX: ${err.message}`))
-        return
-      }
+function parseOfxDate(ofxDate: string): Date {
+  const clean = ofxDate.split('[')[0].replace(/\D/g, '')
 
-      try {
-        const result: OFXData = { transactions: [] }
+  const year = clean.slice(0, 4)
+  const month = clean.slice(4, 6)
+  const day = clean.slice(6, 8)
+  const hour = clean.slice(8, 10) || '00'
+  const minute = clean.slice(10, 12) || '00'
+  const second = clean.slice(12, 14) || '00'
 
-        // Extract statement
-        const stmt =
-          data?.OFX?.BANKMSGSRSV1?.STMTTRNRS?.STMTRS ||
-          data?.OFX?.CREDITCARDMSGSRSV1?.CCSTMTTRNRS?.CCSTMTRS
+  return new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`)
+}
 
-        if (!stmt) {
-          reject(new Error('Arquivo OFX inválido'))
-          return
-        }
+export async function parseOfxFile(file: File): Promise<OfxTransaction[]> {
+  const arrayBuffer = await file.arrayBuffer()
 
-        // Account info
-        const acctInfo = stmt.BANKACCTFROM || stmt.CCACCTFROM
-        if (acctInfo) {
-          result.accountId = acctInfo.ACCTID
-          result.accountType = acctInfo.ACCTTYPE || 'CHECKING'
-        }
+  const buffer = Buffer.from(arrayBuffer)
 
-        // Balance
-        if (stmt.LEDGERBAL) {
-          result.balance = parseFloat(stmt.LEDGERBAL.BALAMT)
-        }
+  // OFX brasileiro geralmente vem latin1/windows-1252
+  let text = iconv.decode(buffer, 'latin1')
 
-        result.currency = stmt.CURDEF || 'BRL'
+  // Remove caracteres inválidos
+  text = text.split('\0').join('')
 
-        // Transactions
-        const txList = stmt.BANKTRANLIST || stmt.CCSTMTTRANLIST
-        if (txList && txList.STMTTRN) {
-          const transactions = Array.isArray(txList.STMTTRN)
-            ? txList.STMTTRN
-            : [txList.STMTTRN]
+  // Extrai blocos de transação
+  const blocks = text.match(/<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi) ?? []
 
-          result.transactions = transactions.map((tx: any) => ({
-            id: tx.FITID || `${tx.DTPOSTED}_${tx.TRNAMT}`,
-            type: parseFloat(tx.TRNAMT) >= 0 ? 'CREDIT' : 'DEBIT',
-            date: parseOFXDate(tx.DTPOSTED),
-            amount: Math.abs(parseFloat(tx.TRNAMT)),
-            description: cleanDescription(tx.NAME || tx.MEMO || 'Transação'),
-            memo: tx.MEMO || tx.NAME,
-          }))
-        }
+  return blocks.map(block => {
+    const rawAmount = Number(extractTag(block, 'TRNAMT'))
 
-        resolve(result)
-      } catch (error: any) {
-        reject(new Error(`Erro ao processar OFX: ${error.message}`))
-      }
-    })
+    const rawType = extractTag(block, 'TRNTYPE')
+
+    const fitId = extractTag(block, 'FITID') || crypto.randomUUID()
+
+    const memo =
+      extractTag(block, 'MEMO') ||
+      extractTag(block, 'NAME') ||
+      'Transação importada'
+
+    const dateRaw = extractTag(block, 'DTPOSTED')
+
+    return {
+      type: rawAmount >= 0 ? 'INCOME' : 'EXPENSE',
+
+      amount: Math.abs(rawAmount),
+
+      rawAmount,
+
+      fitId,
+
+      memo,
+
+      rawType,
+
+      date: parseOfxDate(dateRaw),
+    }
   })
-}
-
-function parseOFXDate(dateStr: string): Date {
-  const year = parseInt(dateStr.substring(0, 4))
-  const month = parseInt(dateStr.substring(4, 6)) - 1
-  const day = parseInt(dateStr.substring(6, 8))
-  return new Date(year, month, day)
-}
-
-function cleanDescription(desc: string): string {
-  return desc.replace(/\s+/g, ' ').trim().substring(0, 255)
-}
-
-export function categorizeTransaction(description: string): string {
-  const desc = description.toLowerCase()
-
-  if (/restaurante|lanchonete|mercado|supermercado|ifood|rappi/i.test(desc))
-    return 'alimentacao'
-  if (/uber|99|taxi|posto|combustivel|gasolina/i.test(desc)) return 'transporte'
-  if (/farmacia|hospital|clinica|medic/i.test(desc)) return 'saude'
-  if (/cinema|netflix|spotify|streaming/i.test(desc)) return 'lazer'
-  if (/loja|shopping|magazine/i.test(desc)) return 'compras'
-
-  return 'outros'
 }

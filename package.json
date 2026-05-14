@@ -21,6 +21,7 @@
     "bcryptjs": "^2.4.3",
     "dayjs": "^1.11.13",
     "hono": "^4.6.12",
+    "iconv-lite": "^0.7.2",
     "jsonwebtoken": "^9.0.2",
     "ofx": "^0.5.0",
     "ofx-js": "^1.0.0",

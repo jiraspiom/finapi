@@ -12,10 +12,10 @@ import { budgetRoutes } from './routes/budgets'
 import { categoryRoutes } from './routes/categories'
 import { dashboardRoutes } from './routes/dashboard'
 import { goalRoutes } from './routes/goals'
-import { importRoutes } from './routes/import'
 import { recurringRoutes } from './routes/recurring'
 import { reportRoutes } from './routes/reports'
 import { transactionRoutes } from './routes/transactions'
+import { transactionImportRoutes } from './routes/transactions-import'
 import { transferRoutes } from './routes/transfers'
 import { env } from './utils/env'
 
@@ -57,7 +57,7 @@ v1.route('/transfers', transferRoutes)
 v1.route('/recurring', recurringRoutes)
 v1.route('/dashboard', dashboardRoutes)
 v1.route('/reports', reportRoutes)
-v1.route('/import', importRoutes)
+v1.route('/transaction-import', transactionImportRoutes)
 
 app.route('/api/v1', v1)
 

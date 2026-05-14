@@ -84,7 +84,7 @@ model Transaction {
   id          String          @id @default(cuid())
   userId      String
   accountId   String
-  categoryId  String
+  categoryId  String?
   type        TransactionType
   amount      Decimal         @db.Decimal(15, 2)
   description String
@@ -99,7 +99,7 @@ model Transaction {
 
   user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   account   Account               @relation(fields: [accountId], references: [id])
-  category  Category              @relation(fields: [categoryId], references: [id])
+  category  Category?             @relation(fields: [categoryId], references: [id])
   recurring RecurringTransaction? @relation(fields: [recurringId], references: [id])
 
   @@index([userId, date])
