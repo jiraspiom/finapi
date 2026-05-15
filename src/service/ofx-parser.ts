@@ -34,13 +34,13 @@ function parseOfxDate(ofxDate: string): Date {
 
 export async function parseOfxFile(file: File): Promise<OfxTransaction[]> {
   const arrayBuffer = await file.arrayBuffer()
-
   const buffer = Buffer.from(arrayBuffer)
 
   // OFX brasileiro geralmente vem latin1/windows-1252
   let text = iconv.decode(buffer, 'latin1')
 
   // Remove caracteres inválidos
+  // text = text.replace(/\u0000/g, '')
   text = text.split('\0').join('')
 
   // Extrai blocos de transação
@@ -48,9 +48,7 @@ export async function parseOfxFile(file: File): Promise<OfxTransaction[]> {
 
   return blocks.map(block => {
     const rawAmount = Number(extractTag(block, 'TRNAMT'))
-
     const rawType = extractTag(block, 'TRNTYPE')
-
     const fitId = extractTag(block, 'FITID') || crypto.randomUUID()
 
     const memo =
@@ -62,17 +60,11 @@ export async function parseOfxFile(file: File): Promise<OfxTransaction[]> {
 
     return {
       type: rawAmount >= 0 ? 'INCOME' : 'EXPENSE',
-
       amount: Math.abs(rawAmount),
-
       rawAmount,
-
       fitId,
-
       memo,
-
       rawType,
-
       date: parseOfxDate(dateRaw),
     }
   })
