@@ -6,13 +6,16 @@
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun --minify --sourcemap",
+    "build:compile": "bun build ./src/index.ts --outfile ./dist/server --target bun --minify --compile",
     "db:generate": "bunx prisma generate",
     "db:migrate": "bunx prisma migrate dev",
     "db:seed": "bun run prisma/seed.ts",
     "db:studio": "bunx prisma studio",
     "test": "bun test",
     "lint": "bunx @biomejs/biome check .",
-    "format": "bunx @biomejs/biome format --write ."
+    "format": "bunx @biomejs/biome format --write .",
+    "predeploy": "bun run db:generate && bun run build:compile"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.4.1",
