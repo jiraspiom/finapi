@@ -78,9 +78,13 @@ reportRoutes.get('/by-category', async c => {
   const byCategory = transactions.reduce<
     Record<string, { category: unknown; total: number; count: number }>
   >((acc, t) => {
-    const key = t.categoryId
+    const key = t.categoryId ?? 'uncategorized'
     if (!acc[key]) {
-      acc[key] = { category: t.category, total: 0, count: 0 }
+      acc[key] = {
+        category: t.category ?? { name: 'Uncategorized' },
+        total: 0,
+        count: 0,
+      }
     }
     acc[key].total += Number(t.amount)
     acc[key].count++
